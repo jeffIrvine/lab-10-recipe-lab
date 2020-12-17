@@ -2,7 +2,8 @@ const fs = require('fs');
 const pool = require('../lib/utils/pool');
 const request = require('supertest');
 const app = require('../lib/app');
-const Recipe = require('../lib/models/recipe');
+const Recipe = require('../lib/models/Recipe');
+const Log = require('../lib/models/Log');
 
 describe('recipe-lab routes', () => {
   beforeEach(() => {
@@ -65,19 +66,28 @@ describe('recipe-lab routes', () => {
         'bake for 10 minutes'
       ],
     });
+    const logs = await Promise.all([
+      {
+        recipeId: recipe.id,
+        dateOfEvent: '2020-12-29',
+        notes: 'jeff birthday',
+        rating: 23
+      },
+      {
+        recipeId: recipe.id,
+        dateOfEvent: '2020-12-29',
+        notes: 'chandler birthday',
+        rating: 23
+      },
+    ].map(log => Log.insert(log)));
 
     return request(app)
       .get(`/api/v1/recipes/${recipe.id}`)
       .then(res => {
         expect(res.body).toEqual({
-          id: expect.any(String),
-          name: 'good cookies',
-          directions: [
-            'preheat oven to 375',
-            'mix ingredients',
-            'put dough on cookie sheet',
-            'bake for 10 minutes'
-          ]
+          ...recipe,
+          logs: expect.arrayContaining(logs)
+          
         });
       });
   });
